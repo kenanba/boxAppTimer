@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Boxing Timer — Box Timer</title>
+
+<!-- Meta descriptions (EN & DE) -->
+<meta name="description" content="Boxing Timer App - Train with adjustable rounds, rests and long breaks. Available in English and German.">
+<meta name="description" lang="de" content="Box Timer App - Trainiere mit anpassbaren Runden, Pausen und langen Pausen. Verfügbar in Deutsch und Englisch.">
+
+<!-- Open Graph (default English) -->
+<meta property="og:title" content="Boxing Timer" />
+<meta property="og:description" content="Train with adjustable rounds and breaks. English + German." />
+<meta property="og:type" content="website" />
+
+<style>
+/* Base variables + theme overrides applied by body class .theme-dark or .theme-light */
+:root{
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --accent:#ff3b30;
+  --accent-2:#0a84ff;
+  --muted:#6b7280;
+  --glass: rgba(255,255,255,0.7);
+  --radius:14px;
+  --round-color: #ff3b30;
+  --rest-color: #10b981;
+  --text: #0f172a;
+  --body-bg: linear-gradient(180deg,#eef3fb,var(--bg));
+  --btn-text: #fff;
+  --ghost-border: #e6eef7;
+}
+body.theme-dark {
+  --bg: #0b1220;
+  --card: #0f1724;
+  --accent: #ff6b6b;
+  --accent-2: #3b82f6;
+  --muted: #9aa6bf;
+  --round-color: #ff6b6b;
+  --rest-color: #34d399;
+  --text: #e6eef8;
+  --body-bg: radial-gradient(circle at 10% 10%, #071021, #081827);
+  --ghost-border: rgba(255,255,255,0.06);
+}
+body.theme-light {
+  /* explicit light theme */
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --accent:#ff3b30;
+  --accent-2:#0a84ff;
+  --muted:#6b7280;
+  --round-color: #ff3b30;
+  --rest-color: #10b981;
+  --text: #0f172a;
+  --body-bg: linear-gradient(180deg,#eef3fb,var(--bg));
+  --ghost-border: #e6eef7;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background: var(--body-bg);
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  -webkit-font-smoothing:antialiased;
+  transition: background .25s ease, color .25s ease;
+}
+.app{
+  width:100%;
+  max-width:1100px;
+  min-height:560px;
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:0 14px 40px rgba(2,6,23,0.08);
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:360px 1fr;
+}
+
+/* left: settings */
+.controls{
+  padding:20px;
+  border-right:1px solid rgba(0,0,0,0.04);
+  background:linear-gradient(180deg, rgba(10,132,255,0.02), transparent);
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.header{display:flex;flex-direction:column;gap:6px}
+.h1{font-size:18px;font-weight:700}
+
+/* form */
+.field{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;gap:8px;align-items:center}
+.input, input[type="number"], select{
+  padding:10px;border-radius:10px;border:1px solid var(--ghost-border);background:var(--card);font-size:14px;color:var(--text);
+}
+.small{width:88px}
+.switch{display:flex;gap:8px;align-items:center}
+.btn{
+  padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  color:var(--btn-text);
+}
+.btn.primary{background:var(--accent-2);color:var(--btn-text);box-shadow:0 8px 20px rgba(10,132,255,0.06)}
+.btn.ghost{background:transparent;border:1px solid var(--ghost-border);color:var(--text)}
+.btn.warn{background:var(--accent);color:var(--btn-text)}
+
+/* right: timer stage */
+.stage{padding:28px;display:flex;flex-direction:column;align-items:center;justify-content:space-between}
+.meta{width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.round-info{font-weight:700;font-size:18px}
+.phase{font-size:14px;color:var(--muted)}
+.time{margin-top:18px;display:flex;gap:18px;align-items:center;flex-direction:column;width:100%}
+.clock{
+  width:280px;height:280px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 30% 20%, #ffffff, #f8fafc);
+  box-shadow:0 18px 40px rgba(2,6,23,0.06), inset 0 -8px 18px rgba(0,0,0,0.03);
+  position:relative;
+  transition: background .25s ease, box-shadow .25s ease, transform .12s;
+}
+body.theme-dark .clock{
+  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  box-shadow: 0 18px 40px rgba(0,0,0,0.4), inset 0 -8px 18px rgba(255,255,255,0.02);
+}
+.bigtime{font-size:64px;font-weight:800;letter-spacing:1px;transition:color .2s}
+.sub{position:absolute;bottom:18px;font-size:13px;color:var(--muted)}
+.progress-wrap{width:100%;max-width:640px;margin-top:18px}
+.progress-bar{height:14px;background:rgba(0,0,0,0.04);border-radius:999px;overflow:hidden}
+.progress{height:100%;background:linear-gradient(90deg,var(--accent-2),#2dd4bf);width:0%}
+
+/* bottom controls & presets */
+.controls-bottom{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.presets{display:flex;gap:8px;flex-wrap:wrap}
+
+/* small helper */
+.hint-small{font-size:12px;color:var(--muted)}
+
+/* footer */
+.footer-note{padding:12px 18px;font-size:13px;color:var(--muted);text-align:center}
+
+/* responsive */
+@media (max-width:960px){
+  .app{grid-template-columns:1fr;min-height:760px}
+  .controls{order:2;border-right:none;border-top:1px solid rgba(0,0,0,0.04)}
+  .clock{width:220px;height:220px}
+  .bigtime{font-size:48px}
+}
+</style>
+</head>
+<body class="theme-dark">
+<div class="app" role="application" aria-label="Boxing Timer App">
+  <div class="controls" aria-hidden="false">
+    <div class="header">
+      <div class="h1" id="ui_title">Boxing Timer</div>
+      <div class="hint" id="ui_sub">Train with adjustable rounds and breaks.</div>
+    </div>
+
+    <div class="field">
+      <label id="lbl_round_length">Round length (seconds)</label>
+      <div class="row">
+        <input id="roundSec" class="input small" type="number" min="5" max="3600" value="180" />
+        <input id="roundMin" class="input small" type="number" min="0" max="59" value="3" />
+        <div class="hint-small">or minutes</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label id="lbl_rest_length">Rest length (seconds)</label>
+      <div class="row">
+        <input id="restSec" class="input small" type="number" min="5" max="3600" value="60" />
+        <div class="hint-small">seconds</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label id="lbl_rounds">Rounds</label>
+      <div class="row">
+        <input id="rounds" class="input small" type="number" min="1" max="99" value="3" />
+        <div class="hint-small">total rounds</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label id="lbl_long_break">Long break every N rounds</label>
+      <div class="row">
+        <input id="longEvery" class="input small" type="number" min="0" max="10" value="0" />
+        <input id="longSec" class="input small" type="number" min="10" max="3600" value="300" />
+        <div class="hint-small">seconds (0 = off)</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label id="lbl_audio">Audio & Vibration</label>
+      <div class="row switch">
+        <label class="hint-small">Sound</label><input id="toggleSound" type="checkbox" checked />
+        <label class="hint-small" style="margin-left:8px">Vibrate</label><input id="toggleVibe" type="checkbox" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label id="lbl_presets">Presets</label>
+      <div class="presets">
+        <button class="btn ghost" id="presetSpar">Sparring</button>
+        <button class="btn ghost" id="presetHIIT">HIIT</button>
+        <button class="btn ghost" id="presetCustom">Custom</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label id="lbl_storage">Save / Load</label>
+      <div class="row">
+        <button class="btn ghost" id="saveBtn">Save</button>
+        <button class="btn ghost" id="loadBtn">Load</button>
+        <button class="btn ghost" id="clearBtn">Clear</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label id="lbl_language">Language / Sprache</label>
+      <div class="row">
+        <button class="btn ghost" id="langEn">English</button>
+        <button class="btn ghost" id="langDe">Deutsch</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label id="lbl_theme">Theme</label>
+      <div class="row">
+        <button class="btn ghost" id="themeLight">Light</button>
+        <button class="btn ghost" id="themeDark">Dark</button>
+      </div>
+    </div>
+
+    <div style="margin-top:auto">
+      <div class="hint">Shortcuts: <strong>Space</strong> Start/Pause • <strong>R</strong> Reset</div>
+    </div>
+  </div>
+
+  <div class="stage" role="region" aria-live="polite">
+    <div class="meta">
+      <div class="round-info" id="roundInfo">Round 1 / 3</div>
+      <div class="phase" id="phaseLabel">Ready</div>
+    </div>
+
+    <div class="time" role="timer" aria-atomic="true">
+      <div class="clock" id="clock">
+        <div class="bigtime" id="timeDisplay">03:00</div>
+        <div class="sub" id="subLabel">Round time</div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-bar" aria-hidden="true"><div class="progress" id="progressBar"></div></div>
+      </div>
+
+      <div class="controls-bottom">
+        <button class="btn primary" id="startBtn">Start</button>
+        <button class="btn ghost" id="pauseBtn">Pause</button>
+        <button class="btn" id="resetBtn">Reset</button>
+        <button class="btn ghost" id="bellTest">Bell</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+/* Boxing Timer (single-file, bilingual, themes, audio, vibration) */
+(() => {
+  const el = id => document.getElementById(id);
+
+  // Elements
+  const roundSecEl = el('roundSec'), roundMinEl = el('roundMin'), restSecEl = el('restSec');
+  const roundsEl = el('rounds'), longEveryEl = el('longEvery'), longSecEl = el('longSec');
+  const toggleSound = el('toggleSound'), toggleVibe = el('toggleVibe');
+  const saveBtn = el('saveBtn'), loadBtn = el('loadBtn'), clearBtn = el('clearBtn');
+  const startBtn = el('startBtn'), pauseBtn = el('pauseBtn'), resetBtn = el('resetBtn'), bellTest = el('bellTest');
+  const presetSpar = el('presetSpar'), presetHIIT = el('presetHIIT'), presetCustom = el('presetCustom');
+  const timeDisplay = el('timeDisplay'), subLabel = el('subLabel'), phaseLabel = el('phaseLabel'), roundInfo = el('roundInfo');
+  const progressBar = el('progressBar');
+  const langEnBtn = el('langEn'), langDeBtn = el('langDe');
+  const titleEl = el('ui_title'), subEl = el('ui_sub'), footerEl = el('footerHint');
+  const themeLightBtn = el('themeLight'), themeDarkBtn = el('themeDark');
+
+  // Translations
+  const TEXT = {
+    en: {
+      title: "Boxing Timer",
+      sub: "Train with adjustable rounds and breaks.",
+      roundLabel: "Round length (seconds)",
+      restLabel: "Rest length (seconds)",
+      rounds: "Rounds",
+      longBreak: "Long break every N rounds",
+      audio: "Audio & Vibration",
+      presets: "Presets",
+      save: "Save",
+      load: "Load",
+      clear: "Clear",
+      language: "Language",
+      ready: "Ready",
+      roundTime: "Round time",
+      restTime: "Rest",
+      longBreakTime: "Long break",
+      finished: "Finished",
+      start: "Start",
+      pause: "Pause",
+      reset: "Reset",
+      bell: "Bell",
+    },
+    de: {
+      title: "Box Timer",
+      sub: "Trainiere mit anpassbaren Runden und Pausen.",
+      roundLabel: "Rundenlänge (Sekunden)",
+      restLabel: "Pausenlänge (Sekunden)",
+      rounds: "Runden",
+      longBreak: "Lange Pause alle N Runden",
+      audio: "Ton & Vibration",
+      presets: "Voreinstellungen",
+      save: "Speichern",
+      load: "Laden",
+      clear: "Löschen",
+      language: "Sprache",
+      ready: "Bereit",
+      roundTime: "Rundenzeit",
+      restTime: "Pause",
+      longBreakTime: "Lange Pause",
+      finished: "Beendet",
+      start: "Start",
+      pause: "Pause",
+      reset: "Zurücksetzen",
+      bell: "Glocke",
+    }
+  };
+
+  // State & defaults
+  const STORAGE = 'boxingTimer_v1';
+  let locale = localStorage.getItem('boxing_locale') || 'de';
+  let theme = localStorage.getItem('boxing_theme') || 'theme-dark'; // 'theme-dark' or 'theme-light'
+  let settings = {
+    roundSec: 180, restSec: 60, rounds: 3,
+    longEvery: 0, longSec: 300,
+    sound: true, vibrate: false
+  };
+
+  let state = {
+    running: false, paused: false, currentRound: 1,
+    phase: 'ready', startTs: null, targetTs: null, remainingMs: 0
+  };
+
+  // Audio (WebAudio)
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+  function ensureAudio(){ if(!audioCtx) audioCtx = new AudioCtx(); }
+
+  function playBell(type='short'){
+    if(!settings.sound) return;
+    ensureAudio();
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.connect(g); g.connect(ctx.destination);
+
+    if(type === 'finish'){
+      o.frequency.setValueAtTime(880, now);
+      o.frequency.exponentialRampToValueAtTime(440, now + 0.6);
+      g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.9, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now+1.2);
+    } else if(type === 'long'){
+      o.frequency.setValueAtTime(660, now);
+      o.frequency.exponentialRampToValueAtTime(520, now + 0.3);
+      g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.8, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now+0.9);
+    } else {
+      o.frequency.setValueAtTime(880, now);
+      o.frequency.exponentialRampToValueAtTime(660, now + 0.15);
+      g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.8, now+0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, now+0.45);
+    }
+    o.start(now); o.stop(now + 1.4);
+  }
+
+  function vibrate(pattern=80){
+    if(!settings.vibrate) return;
+    if(navigator.vibrate) navigator.vibrate(pattern);
+  }
+
+  // Utilities
+  function secToMMSS(s){
+    s = Math.max(0, Math.ceil(s));
+    const mm = Math.floor(s/60).toString().padStart(2,'0');
+    const ss = (s%60).toString().padStart(2,'0');
+    return `${mm}:${ss}`;
+  }
+  function msToDisplay(ms){ return secToMMSS(Math.ceil(ms/1000)); }
+
+  // Storage
+  function loadLocal(){
+    try{
+      const raw = localStorage.getItem(STORAGE);
+      if(raw) settings = {...settings, ...JSON.parse(raw)};
+    }catch(e){}
+    applySettingsToUI();
+  }
+  function saveLocal(){
+    localStorage.setItem(STORAGE, JSON.stringify(settings));
+  }
+  function clearLocal(){
+    localStorage.removeItem(STORAGE);
+    settings = {roundSec:180, restSec:60, rounds:3, longEvery:0, longSec:300, sound:true, vibrate:false};
+    applySettingsToUI(); resetTimer();
+  }
+
+  // Apply settings to inputs
+  function applySettingsToUI(){
+    roundSecEl.value = settings.roundSec;
+    roundMinEl.value = Math.floor(settings.roundSec/60);
+    restSecEl.value = settings.restSec;
+    roundsEl.value = settings.rounds;
+    longEveryEl.value = settings.longEvery;
+    longSecEl.value = settings.longSec;
+    toggleSound.checked = settings.sound;
+    toggleVibe.checked = settings.vibrate;
+  }
+
+  function readSettingsFromUI(){
+    const mm = parseInt(roundMinEl.value) || 0;
+    const rs = parseInt(roundSecEl.value) || 0;
+    settings.roundSec = Math.max(1, (mm*60) || rs || 180);
+    settings.restSec = Math.max(1, parseInt(restSecEl.value) || 60);
+    settings.rounds = Math.max(1, parseInt(roundsEl.value) || 3);
+    settings.longEvery = Math.max(0, parseInt(longEveryEl.value) || 0);
+    settings.longSec = Math.max(10, parseInt(longSecEl.value) || 300);
+    settings.sound = !!toggleSound.checked;
+    settings.vibrate = !!toggleVibe.checked;
+  }
+
+  // State machine
+  function resetTimer(){
+    state.running = false; state.paused = false; state.currentRound = 1;
+    state.phase = 'ready'; state.startTs = null; state.targetTs = null;
+    state.remainingMs = settings.roundSec * 1000;
+    updateUI();
+  }
+
+  function startRound(){
+    state.phase = 'round'; state.running = true; state.paused = false;
+    state.startTs = performance.now(); state.targetTs = state.startTs + settings.roundSec*1000;
+    state.remainingMs = settings.roundSec*1000;
+    playBell('short'); vibrate(100); updateUI(); tick();
+  }
+
+  function startRest(isLong=false){
+    state.phase = isLong ? 'long' : 'rest'; state.running=true; state.paused=false;
+    state.startTs = performance.now(); const sec = isLong ? settings.longSec : settings.restSec;
+    state.targetTs = state.startTs + sec*1000; state.remainingMs = sec*1000;
+    playBell(isLong ? 'long' : 'short'); vibrate(60); updateUI(); tick();
+  }
+
+  function handlePhaseComplete(){
+    if(state.phase === 'round'){
+      if(state.currentRound >= settings.rounds){
+        state.phase = 'finished'; state.running=false; state.startTs=null; state.targetTs=null;
+        playBell('finish'); vibrate([200,100,200]); updateUI(); return;
+      }
+      state.currentRound += 1;
+      if(settings.longEvery>0 && (state.currentRound-1) % settings.longEvery === 0){
+        startRest(true);
+      } else startRest(false);
+    } else if(state.phase === 'rest' || state.phase === 'long'){
+      startRound();
+    }
+  }
+
+  function pauseTimer(){
+    if(!state.running || state.paused) return;
+    state.paused = true; state.remainingMs = Math.max(0, state.targetTs - performance.now());
+    state.startTs = null; state.targetTs = null; updateUI();
+  }
+  function resumeTimer(){
+    if(!state.paused) return;
+    state.paused = false; state.startTs = performance.now(); state.targetTs = state.startTs + state.remainingMs;
+    updateUI(); tick();
+  }
+
+  // tick loop
+  let raf = null;
+  function tick(){
+    if(raf) cancelAnimationFrame(raf);
+    const loop = () => {
+      if(!state.running || state.paused){ raf = null; return; }
+      const now = performance.now();
+      const remaining = Math.max(0, state.targetTs - now);
+      state.remainingMs = remaining; updateUI();
+      if(remaining <= 0){ handlePhaseComplete(); return; }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+  }
+
+  // UI update
+  function updateUI(){
+    const t = TEXT[locale];
+    // phase label
+    if(state.phase === 'ready') phaseLabel.textContent = t.ready;
+    else if(state.phase === 'round') phaseLabel.textContent = t.roundTime;
+    else if(state.phase === 'rest') phaseLabel.textContent = t.restTime;
+    else if(state.phase === 'long') phaseLabel.textContent = t.longBreakTime;
+    else if(state.phase === 'finished') phaseLabel.textContent = t.finished;
+
+    // round info localized
+    roundInfo.textContent = `${ (locale==='de' ? 'Runde' : 'Round') } ${state.currentRound} / ${settings.rounds}`;
+
+    // time display
+    timeDisplay.textContent = msToDisplay(state.remainingMs || settings.roundSec*1000);
+    subLabel.textContent = (state.phase === 'round' ? t.roundTime : (state.phase === 'rest' ? t.restTime : (state.phase === 'long' ? t.longBreakTime : t.ready)));
+
+    // progress calculation
+    let total = settings.roundSec;
+    if(state.phase === 'rest') total = settings.restSec;
+    else if(state.phase === 'long') total = settings.longSec;
+    else if(state.phase === 'ready' || state.phase === 'finished') total = settings.roundSec;
+    const elapsed = Math.max(0, total*1000 - (state.remainingMs || (total*1000)));
+    const pct = Math.min(100, (elapsed / (total*1000)) * 100);
+    progressBar.style.width = pct + '%';
+
+    // color change for round/rest
+    const clock = el('clock');
+    const bigtime = el('timeDisplay');
+    if(state.phase === 'round'){
+      bigtime.style.color = 'var(--round-color)';
+      clock.style.transform = state.running && !state.paused ? 'scale(1.02)' : 'scale(1)';
+    } else if(state.phase === 'rest' || state.phase === 'long'){
+      bigtime.style.color = 'var(--rest-color)';
+      clock.style.transform = state.running && !state.paused ? 'scale(0.98)' : 'scale(1)';
+    } else {
+      bigtime.style.color = 'var(--text)';
+      clock.style.transform = 'scale(1)';
+    }
+
+    // buttons
+    startBtn.disabled = state.running && !state.paused;
+    pauseBtn.disabled = !state.running || state.paused;
+    resetBtn.disabled = (!state.running && state.phase === 'ready') && state.currentRound === 1;
+  }
+
+  // Bind UI
+  startBtn.addEventListener('click', () => {
+    readSettingsFromUI(); saveLocal();
+    if(state.running && state.paused) { resumeTimer(); return; }
+    if(state.phase === 'ready' || state.phase === 'finished'){ state.currentRound = 1; startRound(); return; }
+    if(!state.running) {
+      if(state.phase === 'rest' || state.phase === 'long') resumeTimer();
+      else startRound();
+    }
+  });
+  pauseBtn.addEventListener('click', pauseTimer);
+  resetBtn.addEventListener('click', () => { readSettingsFromUI(); resetTimer(); });
+
+  bellTest.addEventListener('click', () => { playBell('short'); });
+
+  saveBtn.addEventListener('click', () => { readSettingsFromUI(); saveLocal(); alert(locale==='de' ? 'Einstellungen gespeichert' : 'Settings saved'); });
+  loadBtn.addEventListener('click', () => { loadLocal(); alert(locale==='de' ? 'Einstellungen geladen' : 'Settings loaded'); resetTimer(); });
+  clearBtn.addEventListener('click', () => { if(confirm(locale==='de' ? 'Alle Einstellungen löschen?' : 'Clear all settings?')) clearLocal(); });
+
+  presetSpar.addEventListener('click', () => {
+    settings = {roundSec:180, restSec:60, rounds:3, longEvery:0, longSec:300, sound:true, vibrate:false};
+    applySettingsToUI(); resetTimer();
+  });
+  presetHIIT.addEventListener('click', () => {
+    settings = {roundSec:45, restSec:15, rounds:10, longEvery:0, longSec:120, sound:true, vibrate:true};
+    applySettingsToUI(); resetTimer();
+  });
+  presetCustom.addEventListener('click', () => {
+    settings = {roundSec:120, restSec:30, rounds:6, longEvery:2, longSec:180, sound:true, vibrate:false};
+    applySettingsToUI(); resetTimer();
+  });
+
+  // Language switching
+  function applyLocale(){
+    document.documentElement.lang = locale === 'de' ? 'de' : 'en';
+    localStorage.setItem('boxing_locale', locale);
+    const t = TEXT[locale];
+    titleEl.textContent = t.title;
+    subEl.textContent = t.sub;
+    el('lbl_round_length').textContent = t.roundLabel;
+    el('lbl_rest_length').textContent = t.restLabel;
+    el('lbl_rounds').textContent = t.rounds;
+    el('lbl_long_break').textContent = t.longBreak;
+    el('lbl_audio').textContent = t.audio;
+    el('lbl_presets').textContent = t.presets;
+    saveBtn.textContent = t.save; loadBtn.textContent = t.load; clearBtn.textContent = t.clear;
+    el('lbl_language').textContent = t.language;
+    startBtn.textContent = t.start; pauseBtn.textContent = t.pause; resetBtn.textContent = t.reset; bellTest.textContent = t.bell;
+
+
+    // update meta description (for user agents that read it)
+    const metaDesc = document.querySelector('meta[name="description"]');
+    const metaDescDe = document.querySelector('meta[name="description"][lang="de"]');
+    if(locale === 'de' && metaDescDe) metaDesc.content = metaDescDe.content;
+    else if(locale === 'en' && metaDesc) metaDesc.content = 'Boxing Timer App - Train with adjustable rounds and breaks. Available in English and German.';
+  }
+  langEnBtn.addEventListener('click', ()=>{ locale='en'; applyLocale(); updateUI(); });
+  langDeBtn.addEventListener('click', ()=>{ locale='de'; applyLocale(); updateUI(); });
+
+  // Theme switching
+  function applyTheme(t){
+    document.body.classList.remove('theme-dark','theme-light');
+    document.body.classList.add(t);
+    localStorage.setItem('boxing_theme', t);
+  }
+  themeLightBtn.addEventListener('click', ()=>{ theme='theme-light'; applyTheme(theme); });
+  themeDarkBtn.addEventListener('click', ()=>{ theme='theme-dark'; applyTheme(theme); });
+
+  // Keyboard
+  window.addEventListener('keydown', (e) => {
+    if(e.code === 'Space'){ e.preventDefault(); if(!state.running) startBtn.click(); else if(state.paused) startBtn.click(); else pauseBtn.click(); }
+    if(e.key.toLowerCase() === 'r'){ resetBtn.click(); }
+  });
+
+  // Init
+  loadLocal();
+  // apply saved locale & theme
+  locale = localStorage.getItem('boxing_locale') || locale;
+  applyLocale();
+  theme = localStorage.getItem('boxing_theme') || theme;
+  applyTheme(theme);
+
+  // ensure initial state
+  readSettingsFromUI();
+  state.remainingMs = settings.roundSec*1000;
+  updateUI();
+
+  // sync minute/second inputs
+  roundMinEl.addEventListener('change', () => { const mm = Math.max(0, parseInt(roundMinEl.value)||0); roundSecEl.value = mm*60; });
+  roundSecEl.addEventListener('input', () => { const sec = Math.max(1, parseInt(roundSecEl.value)||1); roundMinEl.value = Math.floor(sec/60); });
+
+  // visibilitychange (optional behaviour)
+  document.addEventListener('visibilitychange', () => {
+    // Optionally pause when tab hidden (commented)
+    // if(document.hidden && state.running) pauseTimer();
+  });
+
+})();
+</script>
+</body>
+</html>
